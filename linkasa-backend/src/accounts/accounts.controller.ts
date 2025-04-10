@@ -25,14 +25,14 @@ export class AccountsController {
     return this.accountsService.findAll();
   }
 
-  @Get('/:email/:password')
-  findOne(@Param('email') email: string, @Param('password') password: string) {
-    return this.accountsService.findOne(email, password);
-  }
-
   @Get(':id')
   findOneById(@Param('id') id: string) {
     return this.accountsService.findOneById(+id);
+  }
+
+  @Get('/:email')
+  findOne(@Param('email') email: string) {
+    return this.accountsService.findOne(email);
   }
 
   @Patch(':id')

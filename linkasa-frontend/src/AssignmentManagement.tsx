@@ -42,11 +42,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { API_URL } from "./constants";
 import { useNavigate } from "react-router";
 
-// Course type definition based on your TypeORM entity
+// Course type definition
 interface Course {
     id: number;
     name: string;
@@ -55,14 +62,33 @@ interface Course {
     category: string;
 }
 
-// Initial empty course for the create form
-const emptyCourse: Course = {
+// Assignment type definition based on your TypeORM entity
+interface Assignment {
+    id: number;
+    userId: number;
+    courseId: number;
+    name: string;
+    description: string;
+    isFinished: boolean;
+}
+
+// Initial empty assignment for the create form
+const emptyAssignment: Assignment = {
     id: 0,
+    userId: 1, // Default user ID, you might want to get this from authentication
+    courseId: 0,
     name: "",
     description: "",
-    isActive: true,
-    category: "",
+    isFinished: false,
 };
+
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    password: string;
+    role: string;
+}
 
 function decodeJwt(token: string) {
     try {
@@ -83,16 +109,12 @@ function decodeJwt(token: string) {
     }
 }
 
-interface User {
-    id: number;
-    name: string;
-    email: string;
-    password: string;
-    role: string;
-}
-
-export default function CourseManagement() {
+export default function AssignmentManagement() {
     const [courses, setCourses] = useState<Course[]>([]);
+    const [assignments, setAssignments] = useState<Assignment[]>([]);
+    const [selectedCourseId, setSelectedCourseId] = useState<number | null>(
+        null
+    );
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -101,15 +123,25 @@ export default function CourseManagement() {
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [viewDialogOpen, setViewDialogOpen] = useState(false);
-    const [currentCourse, setCurrentCourse] = useState<Course>(emptyCourse);
+    const [currentAssignment, setCurrentAssignment] =
+        useState<Assignment>(emptyAssignment);
 
     // Fetch all courses on component mount
     useEffect(() => {
         fetchCourses();
     }, []);
 
+    // Fetch assignments when a course is selected
+    useEffect(() => {
+        if (selectedCourseId) {
+            fetchAssignments(selectedCourseId);
+        } else {
+            setAssignments([]);
+            setLoading(false);
+        }
+    }, [selectedCourseId]);
+
     const fetchCourses = async () => {
-        setLoading(true);
         try {
             const response = await fetch(`${API_URL}/courses`);
             if (!response.ok) {
@@ -117,117 +149,160 @@ export default function CourseManagement() {
             }
             const data = await response.json();
             setCourses(data);
+
+            // If there are courses, select the first one by default
+            if (data.length > 0) {
+                setSelectedCourseId(data[0].id);
+            } else {
+                setLoading(false);
+            }
         } catch (err) {
             setError("Error loading courses. Please try again later.");
+            console.error(err);
+            setLoading(false);
+        }
+    };
+
+    const fetchAssignments = async (courseId: number) => {
+        setLoading(true);
+        try {
+            const response = await fetch(
+                `${API_URL}/assignments/course/${courseId}`
+            );
+            if (!response.ok) {
+                throw new Error("Failed to fetch assignments");
+            }
+            const data = await response.json();
+            setAssignments(data);
+        } catch (err) {
+            setError("Error loading assignments. Please try again later.");
             console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCreateCourse = async (e: React.FormEvent) => {
+    const handleCreateAssignment = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const response = await fetch(`${API_URL}/courses`, {
+            const assignmentToCreate = {
+                ...currentAssignment,
+                courseId: selectedCourseId,
+            };
+
+            const response = await fetch(`${API_URL}/assignments`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(currentCourse),
+                body: JSON.stringify(assignmentToCreate),
             });
 
             if (!response.ok) {
-                throw new Error("Failed to create course");
+                throw new Error("Failed to create assignment");
             }
 
-            await fetchCourses();
+            if (selectedCourseId) {
+                await fetchAssignments(selectedCourseId);
+            }
             setCreateDialogOpen(false);
-            setCurrentCourse(emptyCourse);
+            setCurrentAssignment(emptyAssignment);
             toast("Success", {
-                description: "Course created successfully",
+                description: "Assignment created successfully",
             });
         } catch (err) {
             console.error(err);
             toast("Error", {
-                description: "Failed to create course. Please try again.",
+                description: "Failed to create assignment. Please try again.",
             });
         }
     };
 
-    const handleUpdateCourse = async (e: React.FormEvent) => {
+    const handleUpdateAssignment = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const response = await fetch(
-                `${API_URL}/courses/${currentCourse.id}`,
+                `${API_URL}/assignments/${currentAssignment.id}`,
                 {
                     method: "PATCH",
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify(currentCourse),
+                    body: JSON.stringify(currentAssignment),
                 }
             );
 
             if (!response.ok) {
-                throw new Error("Failed to update course");
+                throw new Error("Failed to update assignment");
             }
 
-            await fetchCourses();
+            if (selectedCourseId) {
+                await fetchAssignments(selectedCourseId);
+            }
             setEditDialogOpen(false);
             toast("Success", {
-                description: "Course updated successfully",
+                description: "Assignment updated successfully",
             });
         } catch (err) {
             console.error(err);
             toast("Error", {
-                description: "Failed to update course. Please try again.",
+                description: "Failed to update assignment. Please try again.",
             });
         }
     };
 
-    const handleDeleteCourse = async () => {
+    const handleDeleteAssignment = async () => {
         try {
             const response = await fetch(
-                `${API_URL}/courses/${currentCourse.id}`,
+                `${API_URL}/assignments/${currentAssignment.id}`,
                 {
                     method: "DELETE",
                 }
             );
 
             if (!response.ok) {
-                throw new Error("Failed to delete course");
+                throw new Error("Failed to delete assignment");
             }
 
-            await fetchCourses();
+            if (selectedCourseId) {
+                await fetchAssignments(selectedCourseId);
+            }
             setDeleteDialogOpen(false);
             toast("Success", {
-                description: "Course deleted successfully",
+                description: "Assignment deleted successfully",
             });
         } catch (err) {
             console.error(err);
             toast("Error", {
-                description: "Failed to delete course. Please try again.",
+                description: "Failed to delete assignment. Please try again.",
             });
         }
     };
 
+    const handleCourseChange = (courseId: string) => {
+        setSelectedCourseId(Number(courseId));
+    };
+
     const openCreateDialog = () => {
-        setCurrentCourse(emptyCourse);
+        setCurrentAssignment({
+            ...emptyAssignment,
+            courseId: selectedCourseId || 0,
+        });
         setCreateDialogOpen(true);
     };
 
-    const openEditDialog = (course: Course) => {
-        setCurrentCourse(course);
+    const openEditDialog = (assignment: Assignment) => {
+        setCurrentAssignment(assignment);
         setEditDialogOpen(true);
     };
 
-    const openDeleteDialog = (course: Course) => {
-        setCurrentCourse(course);
+    const openDeleteDialog = (assignment: Assignment) => {
+        setCurrentAssignment(assignment);
         setDeleteDialogOpen(true);
     };
 
-    const openViewDialog = (course: Course) => {
-        setCurrentCourse(course);
+    const openViewDialog = (assignment: Assignment) => {
+        setCurrentAssignment(assignment);
         setViewDialogOpen(true);
     };
 
@@ -235,17 +310,23 @@ export default function CourseManagement() {
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         const { name, value } = e.target;
-        setCurrentCourse((prev) => ({
+        setCurrentAssignment((prev) => ({
             ...prev,
-            [name]: value,
+            [name]: name === "userId" ? Number(value) : value,
         }));
     };
 
     const handleCheckboxChange = (checked: boolean) => {
-        setCurrentCourse((prev) => ({
+        setCurrentAssignment((prev) => ({
             ...prev,
-            isActive: checked,
+            isFinished: checked,
         }));
+    };
+
+    const getSelectedCourseName = () => {
+        if (!selectedCourseId) return "Select a course";
+        const course = courses.find((c) => c.id === selectedCourseId);
+        return course ? course.name : "Unknown course";
     };
 
     const navigate = useNavigate();
@@ -347,23 +428,47 @@ export default function CourseManagement() {
             </div>
 
             <div className="container mx-auto">
-                <Card className="w-[1200px]">
+                <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle className="text-2xl">
-                                Course Management
+                                Assignment Management
                             </CardTitle>
                             <CardDescription>
-                                Create, view, edit, and delete courses in the
-                                LinKasa learning platform.
+                                Create, view, edit, and delete assignments for
+                                courses in the LinKasa learning platform.
                             </CardDescription>
                         </div>
-                        <Button onClick={openCreateDialog}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Course
-                        </Button>
+                        {selectedCourseId && (
+                            <Button onClick={openCreateDialog}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Assignment
+                            </Button>
+                        )}
                     </CardHeader>
                     <CardContent>
+                        <div className="mb-6">
+                            <Label htmlFor="course-select">Select Course</Label>
+                            <Select
+                                value={selectedCourseId?.toString() || ""}
+                                onValueChange={handleCourseChange}
+                            >
+                                <SelectTrigger className="w-full md:w-[300px] mt-2">
+                                    <SelectValue placeholder="Select a course" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {courses.map((course) => (
+                                        <SelectItem
+                                            key={course.id}
+                                            value={course.id.toString()}
+                                        >
+                                            {course.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         {loading ? (
                             <div className="flex justify-center items-center h-64">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -372,13 +477,20 @@ export default function CourseManagement() {
                             <div className="text-center text-red-500 p-4">
                                 {error}
                             </div>
-                        ) : courses.length === 0 ? (
+                        ) : !selectedCourseId ? (
                             <div className="text-center p-8">
                                 <p className="text-muted-foreground mb-4">
-                                    No courses found
+                                    Please select a course to view its
+                                    assignments
+                                </p>
+                            </div>
+                        ) : assignments.length === 0 ? (
+                            <div className="text-center p-8">
+                                <p className="text-muted-foreground mb-4">
+                                    No assignments found for this course
                                 </p>
                                 <Button onClick={openCreateDialog}>
-                                    Create your first course
+                                    Create your first assignment
                                 </Button>
                             </div>
                         ) : (
@@ -387,7 +499,7 @@ export default function CourseManagement() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Name</TableHead>
-                                            <TableHead>Category</TableHead>
+                                            <TableHead>User ID</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead className="text-right">
                                                 Actions
@@ -395,25 +507,25 @@ export default function CourseManagement() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {courses.map((course) => (
-                                            <TableRow key={course.id}>
+                                        {assignments.map((assignment) => (
+                                            <TableRow key={assignment.id}>
                                                 <TableCell className="font-medium">
-                                                    {course.name}
+                                                    {assignment.name}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {course.category}
+                                                    {assignment.userId}
                                                 </TableCell>
                                                 <TableCell>
                                                     <span
                                                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                                            course.isActive
+                                                            assignment.isFinished
                                                                 ? "bg-green-100 text-green-800"
-                                                                : "bg-red-100 text-red-800"
+                                                                : "bg-blue-100 text-blue-800"
                                                         }`}
                                                     >
-                                                        {course.isActive
-                                                            ? "Active"
-                                                            : "Inactive"}
+                                                        {assignment.isFinished
+                                                            ? "Finished"
+                                                            : "In Progress"}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell className="text-right">
@@ -423,7 +535,7 @@ export default function CourseManagement() {
                                                             size="icon"
                                                             onClick={() =>
                                                                 openViewDialog(
-                                                                    course
+                                                                    assignment
                                                                 )
                                                             }
                                                         >
@@ -434,7 +546,7 @@ export default function CourseManagement() {
                                                             size="icon"
                                                             onClick={() =>
                                                                 openEditDialog(
-                                                                    course
+                                                                    assignment
                                                                 )
                                                             }
                                                         >
@@ -446,7 +558,7 @@ export default function CourseManagement() {
                                                             className="text-red-500"
                                                             onClick={() =>
                                                                 openDeleteDialog(
-                                                                    course
+                                                                    assignment
                                                                 )
                                                             }
                                                         >
@@ -463,20 +575,20 @@ export default function CourseManagement() {
                     </CardContent>
                 </Card>
 
-                {/* Create Course Dialog */}
+                {/* Create Assignment Dialog */}
                 <Dialog
                     open={createDialogOpen}
                     onOpenChange={setCreateDialogOpen}
                 >
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Create New Course</DialogTitle>
+                            <DialogTitle>Create New Assignment</DialogTitle>
                             <DialogDescription>
-                                Add a new course to the LinKasa learning
-                                platform.
+                                Add a new assignment to{" "}
+                                {getSelectedCourseName()}.
                             </DialogDescription>
                         </DialogHeader>
-                        <form onSubmit={handleCreateCourse}>
+                        <form onSubmit={handleCreateAssignment}>
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label
@@ -488,23 +600,7 @@ export default function CourseManagement() {
                                     <Input
                                         id="name"
                                         name="name"
-                                        value={currentCourse.name}
-                                        onChange={handleInputChange}
-                                        className="col-span-3"
-                                        required
-                                    />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label
-                                        htmlFor="category"
-                                        className="text-right"
-                                    >
-                                        Category
-                                    </Label>
-                                    <Input
-                                        id="category"
-                                        name="category"
-                                        value={currentCourse.category}
+                                        value={currentAssignment.name}
                                         onChange={handleInputChange}
                                         className="col-span-3"
                                         required
@@ -520,7 +616,7 @@ export default function CourseManagement() {
                                     <Textarea
                                         id="description"
                                         name="description"
-                                        value={currentCourse.description}
+                                        value={currentAssignment.description}
                                         onChange={handleInputChange}
                                         className="col-span-3"
                                         rows={4}
@@ -529,52 +625,72 @@ export default function CourseManagement() {
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label
-                                        htmlFor="isActive"
+                                        htmlFor="userId"
+                                        className="text-right"
+                                    >
+                                        User ID
+                                    </Label>
+                                    <Input
+                                        id="userId"
+                                        name="userId"
+                                        type="number"
+                                        min="1"
+                                        value={currentAssignment.userId}
+                                        onChange={handleInputChange}
+                                        className="col-span-3"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label
+                                        htmlFor="isFinished"
                                         className="text-right"
                                     >
                                         Status
                                     </Label>
                                     <div className="flex items-center space-x-2 col-span-3">
                                         <Checkbox
-                                            id="isActive"
-                                            checked={currentCourse.isActive}
+                                            id="isFinished"
+                                            checked={
+                                                currentAssignment.isFinished
+                                            }
                                             onCheckedChange={
                                                 handleCheckboxChange
                                             }
-                                            className="text-white"
                                         />
                                         <label
-                                            htmlFor="isActive"
+                                            htmlFor="isFinished"
                                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                                         >
-                                            Active
+                                            Finished
                                         </label>
                                     </div>
                                 </div>
                             </div>
                             <DialogFooter>
                                 <Button
-                                    variant="secondary"
+                                    type="button"
+                                    variant="outline"
                                     onClick={() => setCreateDialogOpen(false)}
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit">Create Course</Button>
+                                <Button type="submit">Create Assignment</Button>
                             </DialogFooter>
                         </form>
                     </DialogContent>
                 </Dialog>
 
-                {/* Edit Course Dialog */}
+                {/* Edit Assignment Dialog */}
                 <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Edit Course</DialogTitle>
+                            <DialogTitle>Edit Assignment</DialogTitle>
                             <DialogDescription>
-                                Update the course information.
+                                Update the assignment information.
                             </DialogDescription>
                         </DialogHeader>
-                        <form onSubmit={handleUpdateCourse}>
+                        <form onSubmit={handleUpdateAssignment}>
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label
@@ -586,23 +702,7 @@ export default function CourseManagement() {
                                     <Input
                                         id="edit-name"
                                         name="name"
-                                        value={currentCourse.name}
-                                        onChange={handleInputChange}
-                                        className="col-span-3"
-                                        required
-                                    />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label
-                                        htmlFor="edit-category"
-                                        className="text-right"
-                                    >
-                                        Category
-                                    </Label>
-                                    <Input
-                                        id="edit-category"
-                                        name="category"
-                                        value={currentCourse.category}
+                                        value={currentAssignment.name}
                                         onChange={handleInputChange}
                                         className="col-span-3"
                                         required
@@ -618,7 +718,7 @@ export default function CourseManagement() {
                                     <Textarea
                                         id="edit-description"
                                         name="description"
-                                        value={currentCourse.description}
+                                        value={currentAssignment.description}
                                         onChange={handleInputChange}
                                         className="col-span-3"
                                         rows={4}
@@ -627,24 +727,44 @@ export default function CourseManagement() {
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label
-                                        htmlFor="edit-isActive"
+                                        htmlFor="edit-userId"
+                                        className="text-right"
+                                    >
+                                        User ID
+                                    </Label>
+                                    <Input
+                                        id="edit-userId"
+                                        name="userId"
+                                        type="number"
+                                        min="1"
+                                        value={currentAssignment.userId}
+                                        onChange={handleInputChange}
+                                        className="col-span-3"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label
+                                        htmlFor="edit-isFinished"
                                         className="text-right"
                                     >
                                         Status
                                     </Label>
                                     <div className="flex items-center space-x-2 col-span-3">
                                         <Checkbox
-                                            id="edit-isActive"
-                                            checked={currentCourse.isActive}
+                                            id="edit-isFinished"
+                                            checked={
+                                                currentAssignment.isFinished
+                                            }
                                             onCheckedChange={
                                                 handleCheckboxChange
                                             }
                                         />
                                         <label
-                                            htmlFor="edit-isActive"
+                                            htmlFor="edit-isFinished"
                                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                                         >
-                                            Active
+                                            Finished
                                         </label>
                                     </div>
                                 </div>
@@ -657,17 +777,17 @@ export default function CourseManagement() {
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit">Update Course</Button>
+                                <Button type="submit">Update Assignment</Button>
                             </DialogFooter>
                         </form>
                     </DialogContent>
                 </Dialog>
 
-                {/* View Course Dialog */}
+                {/* View Assignment Dialog */}
                 <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
                     <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                            <DialogTitle>Course Details</DialogTitle>
+                            <DialogTitle>Assignment Details</DialogTitle>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -675,15 +795,7 @@ export default function CourseManagement() {
                                     Name:
                                 </span>
                                 <span className="col-span-3">
-                                    {currentCourse.name}
-                                </span>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <span className="text-right font-medium">
-                                    Category:
-                                </span>
-                                <span className="col-span-3">
-                                    {currentCourse.category}
+                                    {currentAssignment.name}
                                 </span>
                             </div>
                             <div className="grid grid-cols-4 items-start gap-4">
@@ -691,8 +803,24 @@ export default function CourseManagement() {
                                     Description:
                                 </span>
                                 <div className="col-span-3 whitespace-pre-wrap">
-                                    {currentCourse.description}
+                                    {currentAssignment.description}
                                 </div>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <span className="text-right font-medium">
+                                    User ID:
+                                </span>
+                                <span className="col-span-3">
+                                    {currentAssignment.userId}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <span className="text-right font-medium">
+                                    Course:
+                                </span>
+                                <span className="col-span-3">
+                                    {getSelectedCourseName()}
+                                </span>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <span className="text-right font-medium">
@@ -701,14 +829,14 @@ export default function CourseManagement() {
                                 <span className="col-span-3">
                                     <span
                                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                            currentCourse.isActive
+                                            currentAssignment.isFinished
                                                 ? "bg-green-100 text-green-800"
-                                                : "bg-red-100 text-red-800"
+                                                : "bg-blue-100 text-blue-800"
                                         }`}
                                     >
-                                        {currentCourse.isActive
-                                            ? "Active"
-                                            : "Inactive"}
+                                        {currentAssignment.isFinished
+                                            ? "Finished"
+                                            : "In Progress"}
                                     </span>
                                 </span>
                             </div>
@@ -731,15 +859,15 @@ export default function CourseManagement() {
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
                                 This action cannot be undone. This will
-                                permanently delete the course &quot;
-                                {currentCourse.name}&quot; and remove it from
-                                the database.
+                                permanently delete the assignment &quot;
+                                {currentAssignment.name}
+                                &quot; and remove it from the database.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                                onClick={handleDeleteCourse}
+                                onClick={handleDeleteAssignment}
                                 className="bg-red-500 hover:bg-red-600"
                             >
                                 Delete

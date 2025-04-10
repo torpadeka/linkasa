@@ -14,6 +14,7 @@ const app_service_1 = require("./app.service");
 const courses_module_1 = require("./courses/courses.module");
 const assignments_module_1 = require("./assignments/assignments.module");
 const accounts_module_1 = require("./accounts/accounts.module");
+const auth_module_1 = require("./auth/auth.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -34,6 +35,7 @@ exports.AppModule = AppModule = __decorate([
             courses_module_1.CoursesModule,
             assignments_module_1.AssignmentsModule,
             accounts_module_1.AccountsModule,
+            auth_module_1.AuthModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

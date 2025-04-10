@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { AssignmentsService } from './assignments.service';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
@@ -22,8 +30,17 @@ export class AssignmentsController {
     return this.assignmentsService.findOne(+id);
   }
 
+  // New endpoint to get assignments by courseId
+  @Get('course/:courseId')
+  findByCourseId(@Param('courseId') courseId: string) {
+    return this.assignmentsService.findByCourseId(+courseId);
+  }
+
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAssignmentDto: UpdateAssignmentDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateAssignmentDto: UpdateAssignmentDto,
+  ) {
     return this.assignmentsService.update(+id, updateAssignmentDto);
   }
 

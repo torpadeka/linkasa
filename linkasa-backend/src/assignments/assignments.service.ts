@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAssignmentDto } from './dto/create-assignment.dto';
 import { UpdateAssignmentDto } from './dto/update-assignment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,31 +9,43 @@ import { Repository } from 'typeorm';
 export class AssignmentsService {
   constructor(
     @InjectRepository(Assignment)
-    private readonly courseRepository: Repository<Assignment>,
+    private readonly assignmentRepository: Repository<Assignment>,
   ) {}
 
   async create(createAssignmentDto: CreateAssignmentDto): Promise<Assignment> {
-    const course = this.courseRepository.create(createAssignmentDto);
-    return this.courseRepository.save(course);
+    const assignment = this.assignmentRepository.create(createAssignmentDto);
+    return this.assignmentRepository.save(assignment);
   }
 
   async findAll(): Promise<Assignment[]> {
-    return this.courseRepository.find();
+    return this.assignmentRepository.find();
   }
 
   async findOne(id: number): Promise<Assignment | null> {
-    return this.courseRepository.findOneBy({ id });
+    return this.assignmentRepository.findOneBy({ id });
+  }
+
+  async findByCourseId(courseId: number) {
+    const assignments = await this.assignmentRepository.find({
+      where: { courseId },
+    });
+    if (!assignments) {
+      throw new NotFoundException(
+        `No assignments found for course ID ${courseId}`,
+      );
+    }
+    return assignments;
   }
 
   async update(
     id: number,
     updateAssignmentDto: UpdateAssignmentDto,
   ): Promise<Assignment | null> {
-    await this.courseRepository.update(id, updateAssignmentDto);
+    await this.assignmentRepository.update(id, updateAssignmentDto);
     return this.findOne(id);
   }
 
   async remove(id: number): Promise<void> {
-    await this.courseRepository.delete(id);
+    await this.assignmentRepository.delete(id);
   }
 }
