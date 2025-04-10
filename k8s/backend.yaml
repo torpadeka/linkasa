@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: linkasa-backend
+spec:
+    replicas: 2
+    selector:
+        matchLabels:
+            app: linkasa-backend
+    template:
+        metadata:
+            labels:
+                app: linkasa-backend
+        spec:
+            containers:
+                - name: linkasa-backend
+                  image: techtestntdarrenkent.azurecr.io/linkasa_backend:latest
+                  imagePullPolicy: Always
+                  ports:
+                      - containerPort: 3000
+                  env:
+                      - name: MYSQL_HOST
+                        value: "mysql-service"
+                      - name: MYSQL_USER
+                        value: "torpadeka"
+                      - name: MYSQL_PASSWORD
+                        value: "torpadeka"
+                      - name: MYSQL_DATABASE
+                        value: "linkasa"
+                      - name: MYSQL_PORT
+                        value: "3306"
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: linkasa-backend-service
+spec:
+    selector:
+        app: linkasa-backend
+    ports:
+        - port: 3000
+          targetPort: 3000
+    type: LoadBalancer

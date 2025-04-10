@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+    linkasa_frontend:
+        build:
+            context: ./linkasa-frontend # Path to the directory containing the Dockerfile for project1
+            dockerfile: Dockerfile
+        container_name: linkasa_frontend
+        ports:
+            - "8081:8080" # Map host port 8081 to container port 80 (adjust as needed)
+        depends_on:
+            - linkasa_backend # Ensure MySQL starts before this service
+
+    linkasa_backend:
+        build:
+            context: ./linkasa-backend # Path to the directory containing the Dockerfile for project2
+            dockerfile: Dockerfile
+        container_name: linkasa_backend
+        ports:
+            - "3000:3000" # NestJS default port (adjust if different)
+        depends_on:
+            - mysql_db # NestJS depends on MySQL
+        environment:
+            - MYSQL_HOST=mysql_db # Service name as hostname
+            - MYSQL_USER=torpadeka
+            - MYSQL_PASSWORD=torpadeka
+            - MYSQL_DATABASE=linkasa
+            - MYSQL_PORT=3306
+
+    mysql_db:
+        image: mysql:latest # Official MySQL Docker image
+        container_name: mysql_service
+        ports:
+            - "3306:3306" # Expose MySQL port to the host (optional)
+        environment:
+            - MYSQL_ROOT_PASSWORD=torpadeka # Root password for MySQL
+            - MYSQL_USER=torpadeka # Custom user for your apps
+            - MYSQL_PASSWORD=torpadeka # Password for the custom user
+            - MYSQL_DATABASE=linkasa # Default database for project1
+        volumes:
+            - mysql_data:/var/lib/mysql # Persist MySQL data
+            - ./mysql_init:/docker-entrypoint-initdb.d # Mount init scripts
+
+volumes:
+    mysql_data: # Named volume for MySQL data persistence
