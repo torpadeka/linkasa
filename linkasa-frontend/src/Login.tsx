@@ -15,9 +15,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-
-// API base URL
-const API_URL = "http://localhost:3000";
+import { API_URL } from "./constants";
 
 export default function Login() {
     const navigate = useNavigate();

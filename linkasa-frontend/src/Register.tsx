@@ -24,9 +24,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-
-// API base URL
-const API_URL = "http://localhost:3000";
+import { API_URL } from "./constants";
 
 export default function Register() {
     const navigate = useNavigate();
@@ -160,11 +158,8 @@ export default function Register() {
                                         <SelectItem value="student">
                                             Student
                                         </SelectItem>
-                                        <SelectItem value="teacher">
-                                            Teacher
-                                        </SelectItem>
-                                        <SelectItem value="admin">
-                                            Administrator
+                                        <SelectItem value="lecturer">
+                                            Lecturer
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
