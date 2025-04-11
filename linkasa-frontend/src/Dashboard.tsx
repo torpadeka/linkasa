@@ -111,7 +111,12 @@ export default function Dashboard() {
         <div className="container mx-auto py-6">
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center justify-center gap-4">
-                    <img src="./LinKasa.svg" alt="" width="50" className="rounded-xl" />
+                    <img
+                        src="./LinKasa.svg"
+                        alt=""
+                        width="50"
+                        className="rounded-xl"
+                    />
                     <h1 className="text-3xl font-bold">
                         LinKasa Learning Platform
                     </h1>
@@ -136,7 +141,7 @@ export default function Dashboard() {
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card className="w-full h-full flex flex-col items-center justify-center">
-                    <CardHeader className="pb-2">
+                    <CardHeader className="w-full pb-2 flex flex-col items-center justify-center">
                         <CardTitle>Courses</CardTitle>
                         <CardDescription>Manage your courses</CardDescription>
                     </CardHeader>
@@ -154,7 +159,7 @@ export default function Dashboard() {
                 </Card>
 
                 <Card className="w-full h-full flex flex-col items-center justify-center">
-                    <CardHeader className="pb-2">
+                    <CardHeader className="w-full pb-2 flex flex-col items-center justify-center">
                         <CardTitle>Assignments</CardTitle>
                         <CardDescription>
                             Manage your assignments
@@ -174,7 +179,7 @@ export default function Dashboard() {
                 </Card>
 
                 <Card>
-                    <CardHeader className="pb-2">
+                    <CardHeader className="w-full pb-2 flex flex-col items-center justify-center">
                         <CardTitle>Profile</CardTitle>
                         <CardDescription>
                             View your profile information
@@ -182,7 +187,7 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent className="flex flex-col items-center justify-center">
                         <div className="space-y-2">
-                            <div className="flex flex-col items-center gap-2">
+                            <div className="flex items-center justify-center gap-2">
                                 <User className="h-5 w-5 text-primary" />
                                 <span className="font-medium">
                                     User Information

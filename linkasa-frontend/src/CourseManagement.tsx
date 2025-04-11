@@ -347,7 +347,7 @@ export default function CourseManagement() {
             </div>
 
             <div className="container mx-auto">
-                <Card className="w-[1200px]">
+                <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
                             <CardTitle className="text-2xl">
