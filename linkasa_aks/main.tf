@@ -43,7 +43,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
   default_node_pool {
     name                = "default"
-    node_count          = 2
+    node_count          = 1
     vm_size             = "Standard_DS2_v2"
     vnet_subnet_id      = azurerm_subnet.aks_subnet.id
   }
@@ -59,6 +59,16 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 
   depends_on = [azurerm_subnet.aks_subnet]
+}
+
+# Separate Node Pool with Availability Zones
+resource "azurerm_kubernetes_cluster_node_pool" "zoned_pool" {
+  name                  = "zonedpool"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.aks.id
+  vm_size               = "Standard_DS2_v2"  # 1 vCPU per node
+  node_count            = 1 # ideally shouldn't be 1, but quotas so O - O
+  vnet_subnet_id        = azurerm_subnet.aks_subnet.id
+  zones                 = ["1", "3"]  # Specify availability zones here
 }
 
 # Attach ACR to AKS
